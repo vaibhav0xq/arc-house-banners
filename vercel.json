@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": "pnpm run build:vercel",
+  "outputDirectory": "artifacts/paper-chapters/dist/public",
+  "functions": {
+    "api/**/*.mjs": {
+      "includeFiles": "lib/banner-renderer/assets/**",
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    { "source": "/:path((?!api/).*)", "destination": "/index.html" }
+  ]
+}

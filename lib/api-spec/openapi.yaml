@@ -1,0 +1,194 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Arc House chapter banner API. Renders personalised papercut X headers server-side, pixel-identical to the in-browser preview. Nothing is persisted and photos are never stored or logged.
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: banners
+    description: Banner rendering
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /banners/render:
+    post:
+      operationId: renderBanner
+      tags: [banners]
+      summary: Render a personalised papercut banner
+      description: >-
+        Composes the chosen country's 7500x2500 papercut base with the city line,
+        pill, @handle, role line and (optionally) the cropped profile photo,
+        then returns the 1500x500 PNG X header and a 3000x1000 retina WebP as data URLs.
+        The request is stateless: the photo is used for this render only and is never
+        written to disk or logged.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BannerRenderInput"
+      responses:
+        "200":
+          description: Rendered banner files
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BannerRenderResult"
+        "400":
+          description: Invalid input (bad handle, city, role, photo or a character the banner font cannot draw)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "413":
+          description: Photo larger than 25 MB or a rendered response over the 4.4 MB payload limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "500":
+          description: Rendering failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Human-readable message safe to show inline in the studio
+        field:
+          type: string
+          description: Which studio field the error belongs to, when it maps to one
+          enum: [country, city, handle, role, photo]
+      required:
+        - error
+    BannerCountry:
+      type: string
+      description: Country chapter slug; selects the papercut base and paper palette
+      enum:
+        - india
+        - argentina
+        - bangladesh
+        - brazil
+        - vietnam
+        - france
+        - nigeria
+        - portugal
+        - turkey
+        - singapore
+    BannerRenderInput:
+      type: object
+      properties:
+        country:
+          $ref: "#/components/schemas/BannerCountry"
+        city:
+          type: string
+          description: City drawn (uppercased) under the chapter title. Letters, digits, spaces and . ' & / ( ) -
+          minLength: 1
+          maxLength: 28
+          pattern: "^[A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF0-9 .'&/()\\-]+$"
+        handle:
+          type: string
+          description: X handle, with or without the leading @ (1-15 letters, digits or underscores)
+          pattern: "^@?[A-Za-z0-9_]{1,15}$"
+        role:
+          type: string
+          description: Role drawn (uppercased) before the chapter on the pill's second line, e.g. "Founder · INDIA CHAPTER". Omit for "Builder"; send an empty string for no role. Same alphabet as the city, at most 18 characters.
+          maxLength: 18
+          pattern: "^[A-Za-z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF0-9 .'&/()\\-]*$"
+        pfpDataUrl:
+          type: string
+          description: Optional profile photo as a data URL (PNG, JPEG or WebP, at most 25 MB decoded). Omit to render the neutral placeholder bust.
+        scale:
+          type: number
+          description: Crop zoom, 1 (whole photo, cover-fit) to 4
+          minimum: 1
+          maximum: 4
+          default: 1
+        offsetX:
+          type: number
+          description: Horizontal pan as a fraction of the available slack, -1 (left edge) to 1 (right edge)
+          minimum: -1
+          maximum: 1
+          default: 0
+        offsetY:
+          type: number
+          description: Vertical pan as a fraction of the available slack, -1 (top edge) to 1 (bottom edge)
+          minimum: -1
+          maximum: 1
+          default: 0
+      required:
+        - country
+        - city
+        - handle
+    BannerRenderResult:
+      type: object
+      properties:
+        finalPngDataUrl:
+          type: string
+          description: 1500x500 PNG, the file to upload as the X header
+        finalWidth:
+          type: number
+        finalHeight:
+          type: number
+        finalBytes:
+          type: number
+          description: Size of the decoded PNG in bytes
+        masterDataUrl:
+          type: string
+          description: 3000x1000 retina WebP (quality 95)
+        masterWidth:
+          type: number
+        masterHeight:
+          type: number
+        masterFormat:
+          type: string
+          enum: [webp]
+        masterBytes:
+          type: number
+          description: Size of the decoded WebP in bytes
+        fileStem:
+          type: string
+          description: Suggested download file name without extension, e.g. arc-house-papercut-turkey-istanbul-vaibhav_0xq
+        chapterLine:
+          type: string
+          description: What the header reads, e.g. "ISTANBUL · @vaibhav_0xq"
+      required:
+        - finalPngDataUrl
+        - finalWidth
+        - finalHeight
+        - finalBytes
+        - masterDataUrl
+        - masterWidth
+        - masterHeight
+        - masterFormat
+        - masterBytes
+        - fileStem
+        - chapterLine

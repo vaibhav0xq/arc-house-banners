@@ -1,0 +1,31 @@
+/*
+ * The exact TTFs the server renderer draws with, self-hosted so the live
+ * preview measures the @handle with the same metrics and the builder pill is
+ * the same width in the browser and in the download. Do not swap these for the
+ * Google Fonts build of Manrope: the family name is deliberately distinct so UI
+ * text and banner text never share a face by accident.
+ */
+@font-face {
+  font-family: 'Manrope Banner';
+  font-style: normal;
+  font-weight: 500;
+  font-display: block;
+  src: url('/fonts/Manrope-500.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Manrope Banner';
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url('/fonts/Manrope-700.ttf') format('truetype');
+}
+
+/* Display face for headlines, the same cut that titles the banner bases. */
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('/fonts/Outfit-ExtraBold.ttf') format('truetype');
+}
